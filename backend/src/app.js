@@ -61,6 +61,6 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Crypto Bank API running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Crypto Bank API listening on 0.0.0.0:${PORT}`));
 
 module.exports = app;
