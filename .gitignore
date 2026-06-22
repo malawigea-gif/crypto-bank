@@ -1,0 +1,27 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — never commit real env files
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Uploads (user files)
+backend/uploads/
+
+# Prisma client (regenerated on build)
+# backend/node_modules/.prisma  <- covered by node_modules above
+
+# Logs
+*.log
+npm-debug.log*

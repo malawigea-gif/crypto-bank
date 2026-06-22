@@ -1,0 +1,265 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                      Int       @id @default(autoincrement())
+  fullName                String?
+  firstName               String    @default("")
+  lastName                String    @default("")
+  country                 String    @default("")
+  phoneCountry            String    @default("")
+  email                   String    @unique
+  phone                   String    @unique
+  passwordHash            String
+  kycStatus               KYCStatus @default(PENDING)
+  role                    Role      @default(USER)
+  isActive                Boolean   @default(true)
+  twoFAEnabled            Boolean   @default(false)
+  twoFASecret             String?
+  referralCode            String?   @unique
+  referredById            Int?
+  lastCommissionRunAt     DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  wallets           Wallet[]
+  loans             Loan[]
+  savingsAccounts   SavingsAccount[]
+  sentTransfers     Transfer[] @relation("SentTransfers")
+  receivedTransfers Transfer[] @relation("ReceivedTransfers")
+  auditLogs         AuditLog[]
+  kycSubmission     KycSubmission?
+  messages          Message[]
+  depositRequests   DepositRequest[]
+  withdrawRequests  WithdrawRequest[]
+  referredBy        User?     @relation("Referrals", fields: [referredById], references: [id])
+  referrals         User[]    @relation("Referrals")
+  referralRewards   ReferralReward[] @relation("ReferrerRewards")
+}
+
+model ReferralReward {
+  id          Int      @id @default(autoincrement())
+  referrerId  Int
+  refereeId   Int
+  sourceType  String
+  savingsId   Int?
+  currency    String
+  amount      Decimal  @db.Decimal(20, 8)
+  createdAt   DateTime @default(now())
+
+  referrer    User          @relation("ReferrerRewards", fields: [referrerId], references: [id])
+  savings     SavingsAccount? @relation("SavingsRewards", fields: [savingsId], references: [id])
+}
+
+enum KYCStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Wallet {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  currency    String
+  balance     Decimal   @default(0.00000000) @db.Decimal(20, 8)
+  address     String    @unique
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model Transfer {
+  id            Int       @id @default(autoincrement())
+  senderId      Int
+  receiverId    Int
+  currency      String
+  amount        Decimal   @db.Decimal(20, 8)
+  fee           Decimal   @default(0) @db.Decimal(20, 8)
+  status        TxStatus  @default(PENDING)
+  txHash        String?
+  note          String?
+  createdAt     DateTime  @default(now())
+
+  sender        User      @relation("SentTransfers", fields: [senderId], references: [id])
+  receiver      User      @relation("ReceivedTransfers", fields: [receiverId], references: [id])
+}
+
+enum TxStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model SavingsAccount {
+  id            Int           @id @default(autoincrement())
+  userId        Int
+  currency      String
+  principal     Decimal       @db.Decimal(20, 8)
+  interestRate  Decimal       @db.Decimal(5, 2)
+  accountType   SavingsType
+  startDate     DateTime      @default(now())
+  maturityDate  DateTime?
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+
+  user          User          @relation(fields: [userId], references: [id])
+  referralRewards ReferralReward[] @relation("SavingsRewards")
+}
+
+enum SavingsType {
+  FLEXIBLE
+  FIXED_6M
+  FIXED_1Y
+}
+
+model Loan {
+  id                Int         @id @default(autoincrement())
+  userId            Int
+  collateralCurrency String
+  collateralAmount  Decimal     @db.Decimal(20, 8)
+  loanAmountUSDT    Decimal     @db.Decimal(20, 8)
+  interestRate      Decimal     @db.Decimal(5, 2)
+  status            LoanStatus  @default(PENDING)
+  dueDate           DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  user              User        @relation(fields: [userId], references: [id])
+  repayments        Repayment[]
+}
+
+enum LoanStatus {
+  PENDING
+  ACTIVE
+  REPAID
+  DEFAULTED
+}
+
+model Repayment {
+  id        Int       @id @default(autoincrement())
+  loanId    Int
+  amount    Decimal   @db.Decimal(20, 8)
+  paidAt    DateTime  @default(now())
+
+  loan      Loan      @relation(fields: [loanId], references: [id])
+}
+
+model AuditLog {
+  id        Int       @id @default(autoincrement())
+  userId    Int?
+  action    String
+  details   String?   @db.Text
+  ipAddress String?
+  createdAt DateTime  @default(now())
+
+  user      User?     @relation(fields: [userId], references: [id])
+}
+
+// ── KYC Documents ──────────────────────────────────────────────
+
+enum DocumentType {
+  NIC
+  PASSPORT
+  DRIVING_LICENSE
+  OTHER
+}
+
+model KycSubmission {
+  id              Int          @id @default(autoincrement())
+  userId          Int          @unique
+  user            User         @relation(fields: [userId], references: [id])
+  documentType    DocumentType
+  docImage1Path   String
+  docImage2Path   String
+  facePhotoPath   String
+  signaturePath   String
+  status          KYCStatus    @default(PENDING)
+  rejectionReason String?
+  submittedAt     DateTime     @default(now())
+  reviewedAt      DateTime?
+  reviewedBy      Int?
+}
+
+// ── Messaging ──────────────────────────────────────────────────
+
+enum MessageSender {
+  USER
+  ADMIN
+}
+
+model Message {
+  id        Int           @id @default(autoincrement())
+  userId    Int
+  user      User          @relation(fields: [userId], references: [id])
+  sender    MessageSender
+  body      String        @db.Text
+  isRead    Boolean       @default(false)
+  createdAt DateTime      @default(now())
+}
+
+// ── Password Reset ─────────────────────────────────────────────
+
+enum ResetStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  USED
+}
+
+// ── TRC-20 USDT Deposit / Withdraw Requests ───────────────────
+
+model DepositRequest {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  amount     Decimal   @db.Decimal(20, 8)
+  txid       String    @unique
+  status     String    @default("PENDING")
+  adminNote  String?
+  reviewedBy Int?
+  createdAt  DateTime  @default(now())
+  reviewedAt DateTime?
+
+  user       User      @relation(fields: [userId], references: [id])
+}
+
+model WithdrawRequest {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  amount     Decimal   @db.Decimal(20, 8)
+  fee        Decimal   @db.Decimal(20, 8) @default(0)
+  toAddress  String
+  status     String    @default("PENDING")
+  txid       String?
+  adminNote  String?
+  reviewedBy Int?
+  createdAt  DateTime  @default(now())
+  reviewedAt DateTime?
+
+  user       User      @relation(fields: [userId], references: [id])
+}
+
+model PasswordResetRequest {
+  id           Int         @id @default(autoincrement())
+  email        String
+  documentPath String
+  note         String?
+  status       ResetStatus @default(PENDING)
+  resetToken   String?     @unique
+  tokenExpires DateTime?
+  createdAt    DateTime    @default(now())
+  reviewedBy   Int?
+  reviewedAt   DateTime?
+}
