@@ -250,6 +250,13 @@ export default function WalletPage() {
               <button onClick={() => setShowDeposit(false)} className="text-slate-500 hover:text-white text-xl">✕</button>
             </div>
 
+            <div className="bg-red-600/20 border-2 border-red-500/80 rounded-xl p-4 mb-5">
+              <p className="text-red-400 text-sm font-bold">⛔ DEMO ONLY — Do not send real funds</p>
+              <p className="text-red-300/80 text-xs mt-1.5 leading-relaxed">
+                This is a simulated demo project. Balances are not real. Any funds sent to any address shown here will be <strong>permanently lost</strong>.
+              </p>
+            </div>
+
             <div className="bg-yellow-500/10 border border-yellow-500/40 rounded-xl p-4 mb-5">
               <p className="text-yellow-400 text-sm font-semibold">⚠ TRC-20 Network Only</p>
               <p className="text-yellow-300/80 text-xs mt-1.5 leading-relaxed">
@@ -259,14 +266,14 @@ export default function WalletPage() {
 
             {depositAddress && (
               <div className="bg-slate-800 rounded-xl p-4 mb-5">
-                <p className="text-slate-400 text-xs mb-3 text-center">Scan or copy the TRC-20 deposit address</p>
+                <p className="text-red-400/90 text-xs mb-3 text-center font-semibold">⚠ DEMO address — for illustration only. Do not send real funds.</p>
                 <div className="flex justify-center mb-3">
                   <div className="bg-white p-2 rounded-xl">
                     <QRCodeSVG value={depositAddress} size={160} level="M" />
                   </div>
                 </div>
                 <div className="flex items-center gap-2 bg-slate-700 rounded-lg px-3 py-2.5">
-                  <code className="text-green-400 text-xs flex-1 break-all leading-relaxed">{depositAddress}</code>
+                  <code className="text-yellow-300/70 text-xs flex-1 break-all leading-relaxed">[DEMO] {depositAddress}</code>
                   <button onClick={handleCopy}
                     className={`text-xs px-3 py-1.5 rounded-lg shrink-0 font-medium transition-colors ${
                       copied ? 'bg-green-600 text-white' : 'bg-slate-600 hover:bg-slate-500 text-slate-300'
